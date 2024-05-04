@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Voucher Detail
+{% endblock %}
+
+{% block body %}
+    <div class="container">
+       
+        <form method="POST" action="{% url 'voucher_update' voucher.id %}" id="voucherForm">
+            {% csrf_token %}
+            <div class="shadow row m-2 p-2">
+                <div class="col col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label"> Counter Id </label>
+                        <input class="form-control" type="number" name="counter_id" value="{{ voucher.counter_id }}" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Cashier Name </label>
+                        <input class="form-control" type="text" name="cashier_name" value="{{ voucher.cashier_name }}" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Customer Name </label>
+                        <input class="form-control" type="text" name="customer_name" value="{{ voucher.customer_name }}" required/>
+                    </div>
+                </div>
+                <div class="col col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label"> Branch </label>
+                        <select class="form-control" name="branch" required>
+                            {% for b in branchs %}
+                                <option value="{{ b.id }}" {% if b.id == voucher.branch.id %} selected {% endif %}>{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Date </label>
+                        <input class="form-control" type="date" name="date" value="{{ voucher.date }}" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Total </label>
+                        <input class="form-control" type="number" name="total" value="{{ voucher.total }}" required/>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary float-end mt-3" id="addItemBtn">Add +</button>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Item Id</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                    {% for d in items %}
+                    <tr>
+                        <th scope="row">{{ forloop.counter }}</th>
+                        <td><input type="text" class="form-control item-name" value="{{ d.name }}" required></td>
+                        <td><input type="number" class="form-control item-price" value="{{ d.price }}" min="0" step="0.01" oninput="updateAmount(this)" required></td>
+                        <td><input type="number" class="form-control item-qty" value="{{ d.qty }}" min="0" oninput="updateAmount(this)" required></td>
+                        <td class="item-amount">{{ d.amount }}</td>
+                        <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <input type="hidden" name="items" id="itemsData">
+            <button type="submit" class="btn btn-warning" onclick="serializeItems()">Update</button>
+
+            <a href="/voucher/{{voucher.id}}/delete/" class="btn btn-danger">Delete</a>
+        </form>
+
+        <script>
+
+            document.getElementById("addItemBtn").addEventListener("click", function () {
+                var itemsTableBody = document.getElementById("itemsTableBody");
+                var newRowNumber = itemsTableBody.children.length + 1;
+
+                var newRow = `
+                    <tr>
+                        <th scope="row">${newRowNumber}</th>
+                        <td><input type="text" class="form-control item-name" placeholder="Enter Name" required></td>
+                        <td><input type="number" class="form-control item-price" min="0" step="0.01" placeholder="Enter Price" oninput="updateAmount(this)" required></td>
+                        <td><input type="number" class="form-control item-qty" min="0" placeholder="Enter Qty" oninput="updateAmount(this)" required></td>
+                        <td class="item-amount">0</td>
+                        <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                `;
+
+                itemsTableBody.innerHTML += newRow;
+            });
+
+            function updateAmount(input) {
+                var row = input.parentNode.parentNode;
+                var price = parseFloat(row.querySelector('.item-price').value) || 0;
+                var qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+
+                var amountCell = row.querySelector('.item-amount');
+                amountCell.textContent = (price * qty).toFixed(2);
+            }
+
+            function deleteRow(button) {
+                var row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                var rows = document.querySelectorAll("#itemsTableBody tr");
+                rows.forEach((tr, index) => {
+                    tr.querySelector("th").textContent = index + 1;
+                });
+            }
+
+            function serializeItems() {
+                var rows = document.querySelectorAll("#itemsTableBody tr");
+                var items = [];
+
+                rows.forEach(row => {
+                    var item = {
+                        'name': row.querySelector('.item-name').value,
+                        'price': parseFloat(row.querySelector('.item-price').value) || 0,
+                        'qty': parseFloat(row.querySelector('.item-qty').value) || 0,
+                        'amount': parseFloat(row.querySelector('.item-amount').textContent) || 0
+                    };
+                    items.push(item);
+                });
+
+                document.getElementById("itemsData").value = JSON.stringify(items);
+            }
+        </script>
+    </div>
+{% endblock %}

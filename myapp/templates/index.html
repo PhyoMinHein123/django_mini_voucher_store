@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Title
+{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <form method="POST" id="counterForm">
+            {% csrf_token %}
+            <div class="shadow row m-2 p-2">
+                <div class="col col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label"> Counter Id </label>
+                        <input class="form-control" type="number" name="counter_id" id="counterId" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Cashier Name </label>
+                        <input class="form-control" type="text" name="cashier_name" id="cashierName" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Customer Name </label>
+                        <input class="form-control" type="text" name="customer_name" id="customerName" required/>
+                    </div>
+                </div>
+                <div class="col col-12 col-sm-12 col-md-6 col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label"> Branch </label>
+                        <select class="form-control" name="branch" id="branch" required>
+                            {% for b in branchs %}
+                                <option value="{{ b.id }}">{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Date </label>
+                        <input class="form-control" type="date" name="date" id="date" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"> Total </label>
+                        <input class="form-control" type="number" name="total" id="totalAmount" required/>
+                    </div>
+                </div>
+            </div>
+
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Item Id</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                    <tr>
+                        <th scope="row">1</th>
+                        <td><input type="text" class="form-control item-name" placeholder="Enter Name" style="max-width: 150px;"></td>
+                        <td><input type="number" class="form-control price" min="0" step="0.01" placeholder="Enter Price" style="max-width: 100px;" oninput="updateAmount(this)"></td>
+                        <td><input type="number" class="form-control qty" min="0" placeholder="Enter Qty" style="max-width: 80px;" oninput="updateAmount(this)"></td>
+                        <td class="amount">0</td>
+                        <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button id="addRowBtn" class="btn btn-primary float-end mt-3" type="button"> Add + </button>
+
+            <input type="hidden" name="items" id="itemsData">
+            <button class="btn btn-warning mt-4 mb-5" type="submit" onclick="serializeTable()">Save</button>
+        </form>
+        <hr/>
+
+        <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Counter Id</th>
+                <th scope="col">Cashier Name</th>
+                <th scope="col">Customer Name</th>
+                <th scope="col">Branch</th>
+                <th scope="col">Date</th>
+                <th scope="col">Total</th>
+                <th scope="col">Option</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for v in voucher %}
+              <tr>
+                <th scope="row">1</th>
+                <td>{{ v.counter_id }}</td>
+                <td>{{ v.cashier_name }}</td>
+                <td>{{ v.customer_name }}</td>
+                <td>{{ v.branch.name }}</td>
+                <td>{{ v.date }}</td>
+                <td>{{ v.total }}</td>
+                <td><a href="/voucher/{{v.id}}/">Detail</a>
+              </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <script>
+
+            document.getElementById("addRowBtn").addEventListener("click", function () {
+                var itemsTableBody = document.getElementById("itemsTableBody");
+                var newRowNumber = itemsTableBody.children.length + 1;
+
+                var newRow = `
+                    <tr>
+                        <th scope="row">${newRowNumber}</th>
+                        <td><input type="text" class="form-control item-name" placeholder="Enter Name" style="max-width: 150px;"></td>
+                        <td><input type="number" class="form-control price" min="0" step="0.01" placeholder="Enter Price" style="max-width: 100px;" oninput="updateAmount(this)"></td>
+                        <td><input type="number" class="form-control qty" min="0" placeholder="Enter Qty" style="max-width: 80px;" oninput="updateAmount(this)"></td>
+                        <td class="amount">0</td>
+                        <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                `;
+
+                itemsTableBody.innerHTML += newRow;
+            });
+
+            function deleteRow(button) {
+                var row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                var rows = document.querySelectorAll("#itemsTableBody tr");
+                rows.forEach((tr, index) => {
+                    tr.querySelector("th").textContent = index + 1;
+                });
+            }
+
+            function updateAmount(input) {
+                var row = input.parentNode.parentNode;
+                var price = parseFloat(row.querySelector(".price").value) || 0;
+                var qty = parseFloat(row.querySelector(".qty").value) || 0;
+
+                var amountCell = row.querySelector(".amount");
+                amountCell.textContent = (price * qty).toFixed(2);
+            }
+
+            function serializeTable() {
+                var rows = document.querySelectorAll("#itemsTableBody tr");
+                var items = [];
+
+                rows.forEach(row => {
+                    var item = {
+                        'name': row.querySelector(".item-name").value,
+                        'price': parseFloat(row.querySelector(".price").value) || 0,
+                        'qty': parseFloat(row.querySelector(".qty").value) || 0,
+                        'amount': parseFloat(row.querySelector(".amount").textContent) || 0
+                    };
+                    items.push(item);
+                });
+
+                document.getElementById("itemsData").value = JSON.stringify(items);
+            }
+        </script>
+{% endblock %}
